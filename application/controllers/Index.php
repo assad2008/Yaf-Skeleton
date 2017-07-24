@@ -1,6 +1,6 @@
 <?php
 
-final class Controller_Index extends ControllerBase
+final class IndexController extends ControllerBase
 {
 
     public $actions = [
