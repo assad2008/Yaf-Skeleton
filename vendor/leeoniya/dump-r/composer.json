@@ -1,0 +1,26 @@
+{
+    "name": "leeoniya/dump-r",
+    "description": "a cleaner, leaner mix of print_r() and var_dump()",
+    "keywords": ["print_r", "var_dump", "debug", "pretty", "print", "dump"],
+    "type": "library",
+    "homepage": "https://github.com/leeoniya/dump_r.php",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Leon Sorokin",
+            "email": "leeoniya@gmail.com",
+            "homepage": "https://github.com/leeoniya",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "suggest": {
+        "jdorn/sql-formatter": "Pretty-print dumped SQL strings"
+    },
+    "autoload": {
+        "files": ["dump_r.php"],
+        "psr-4": {"dump_r\\": "src/dump_r"}
+    }
+}
