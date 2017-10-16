@@ -1017,16 +1017,16 @@
         },
         {
             "name": "respect/validation",
-            "version": "1.1.12",
+            "version": "1.1.13",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Respect/Validation.git",
-                "reference": "5ab87d1dd932872f6670136a513f72ff9ea41c67"
+                "reference": "631affdbf2762c6d207921e18ab740d7eb5f7399"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Respect/Validation/zipball/5ab87d1dd932872f6670136a513f72ff9ea41c67",
-                "reference": "5ab87d1dd932872f6670136a513f72ff9ea41c67",
+                "url": "https://api.github.com/repos/Respect/Validation/zipball/631affdbf2762c6d207921e18ab740d7eb5f7399",
+                "reference": "631affdbf2762c6d207921e18ab740d7eb5f7399",
                 "shasum": ""
             },
             "require": {
@@ -1078,7 +1078,7 @@
                 "validation",
                 "validator"
             ],
-            "time": "2017-03-14T09:44:11+00:00"
+            "time": "2017-10-16T08:39:15+00:00"
         },
         {
             "name": "symfony/cache",
