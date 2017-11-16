@@ -29,6 +29,7 @@ class ComposerStaticInit1509b3972400b39aeed672bda08cc822
         'S' => 
         array (
             'Symfony\\Polyfill\\Mbstring\\' => 26,
+            'Symfony\\Polyfill\\Apcu\\' => 22,
             'Symfony\\Component\\Translation\\' => 30,
             'Symfony\\Component\\Cache\\' => 24,
         ),
@@ -87,6 +88,10 @@ class ComposerStaticInit1509b3972400b39aeed672bda08cc822
         'Symfony\\Polyfill\\Mbstring\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
+        ),
+        'Symfony\\Polyfill\\Apcu\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/symfony/polyfill-apcu',
         ),
         'Symfony\\Component\\Translation\\' => 
         array (
