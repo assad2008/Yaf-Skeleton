@@ -6,13 +6,15 @@
 	Tracy = window.Tracy || {};
 
 	if (document.currentScript) {
-		var nonce = document.currentScript.getAttribute('nonce');
+		var nonce = document.currentScript.getAttribute('nonce') || document.currentScript.nonce;
 		var contentId = document.currentScript.dataset.id;
 	}
 
 	Tracy.getAjaxHeader = function() {
 		return contentId;
 	};
+
+	Tracy.panelZIndex = Tracy.panelZIndex || 20000;
 
 	var Panel = Tracy.DebugPanel = function(id) {
 		this.id = id;
@@ -24,7 +26,7 @@
 	Panel.FLOAT = 'tracy-mode-float';
 	Panel.WINDOW = 'tracy-mode-window';
 	Panel.FOCUSED = 'tracy-focused';
-	Panel.zIndex = 20000;
+	Panel.zIndexCounter = 1;
 
 	Panel.prototype.init = function() {
 		var _this = this, elem = this.elem;
@@ -39,12 +41,19 @@
 			handles: elem.querySelectorAll('h1'),
 			start: function() {
 				_this.toFloat();
+				_this.focus();
+			}
+		});
+
+		elem.addEventListener('mousedown', function(e) {
+			if (isTargetChanged(e.relatedTarget, this)) {
+				_this.focus();
 			}
 		});
 
 		elem.addEventListener('mouseover', function(e) {
 			if (isTargetChanged(e.relatedTarget, this)) {
-				_this.focus();
+				clearTimeout(elem.Tracy.displayTimeout);
 			}
 		});
 
@@ -74,7 +83,7 @@
 				clearTimeout(elem.Tracy.displayTimeout);
 				if (this.rel === 'close') {
 					_this.toPeek();
-				} else {
+				} else if (this.rel === 'window') {
 					_this.toWindow();
 				}
 				e.preventDefault();
@@ -98,7 +107,7 @@
 			clearTimeout(elem.Tracy.displayTimeout);
 			elem.Tracy.displayTimeout = setTimeout(function() {
 				elem.classList.add(Panel.FOCUSED);
-				elem.style.zIndex = Panel.zIndex++;
+				elem.style.zIndex = Tracy.panelZIndex + Panel.zIndexCounter++;
 				if (callback) {
 					callback();
 				}
@@ -184,7 +193,7 @@
 		if (this.is(Panel.WINDOW)) {
 			localStorage.setItem(this.id, JSON.stringify({window: true}));
 		} else if (pos.width) {
-			localStorage.setItem(this.id, JSON.stringify({right: pos.right, bottom: pos.bottom}));
+			localStorage.setItem(this.id, JSON.stringify({right: pos.right, bottom: pos.bottom, zIndex: this.elem.style.zIndex - Tracy.panelZIndex}));
 		} else {
 			localStorage.removeItem(this.id);
 		}
@@ -201,6 +210,8 @@
 			this.init();
 			this.toFloat();
 			setPosition(this.elem, pos);
+			this.elem.style.zIndex = Tracy.panelZIndex + (pos.zIndex || 1);
+			Panel.zIndexCounter = Math.max(Panel.zIndexCounter, (pos.zIndex || 1)) + 1;
 		}
 	};
 
@@ -251,7 +262,7 @@
 						panel.toFloat();
 						setPosition(panel.elem, {
 							right: getPosition(panel.elem).right + Math.round(Math.random() * 100) + 20,
-							bottom: getPosition(panel.elem).bottom + Math.round(Math.random() * 100) + 20
+							bottom: getPosition(panel.elem).bottom + (Math.round(Math.random() * 100) + 20) * (_this.isAtTop() ? -1 : 1)
 						});
 					}
 				}
@@ -270,7 +281,9 @@
 							var pos = getPosition(panel.elem);
 							setPosition(panel.elem, {
 								right: pos.right - getOffset(link).left + pos.width - getPosition(link).width - 4 + getOffset(panel.elem).left,
-								bottom: pos.bottom - getOffset(elem).top + pos.height + 4 + getOffset(panel.elem).top
+								bottom: _this.isAtTop()
+									? getPosition(elem).bottom - pos.height - 4
+									: pos.bottom - getOffset(elem).top + pos.height + 4 + getOffset(panel.elem).top
 							});
 						}
 					});
@@ -309,6 +322,11 @@
 		if (pos) {
 			setPosition(document.getElementById(this.id), pos);
 		}
+	};
+
+	Bar.prototype.isAtTop = function() {
+		var pos = getPosition(this.elem);
+		return pos.top < 100 && pos.bottom > pos.top;
 	};
 
 

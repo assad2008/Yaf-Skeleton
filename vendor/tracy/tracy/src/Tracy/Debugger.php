@@ -8,7 +8,6 @@
 namespace Tracy;
 
 use ErrorException;
-use Tracy;
 
 
 /**
@@ -16,7 +15,7 @@ use Tracy;
  */
 class Debugger
 {
-	const VERSION = '2.4.11';
+	const VERSION = '2.4.13';
 
 	/** server modes for Debugger::enable() */
 	const
@@ -31,6 +30,9 @@ class Debugger
 
 	/** @var bool whether to display debug bar in development mode */
 	public static $showBar = true;
+
+	/** @var bool whether to send data to FireLogger in development mode */
+	public static $showFireLogger = true;
 
 	/** @var bool */
 	private static $enabled = false;
@@ -607,7 +609,7 @@ class Debugger
 	 */
 	public static function fireLog($message)
 	{
-		if (!self::$productionMode) {
+		if (!self::$productionMode && self::$showFireLogger) {
 			return self::getFireLogger()->log($message);
 		}
 	}
