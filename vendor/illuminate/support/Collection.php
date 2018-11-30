@@ -58,7 +58,7 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
     protected static $proxies = [
         'average', 'avg', 'contains', 'each', 'every', 'filter', 'first',
         'flatMap', 'groupBy', 'keyBy', 'map', 'max', 'min', 'partition',
-        'reject', 'sortBy', 'sortByDesc', 'sum', 'unique',
+        'reject', 'some', 'sortBy', 'sortByDesc', 'sum', 'unique',
     ];
 
     /**
@@ -172,7 +172,7 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
     /**
      * Get the median of a given key.
      *
-     * @param  null $key
+     * @param  string|array|null $key
      * @return mixed
      */
     public function median($key = null)
@@ -202,14 +202,12 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
     /**
      * Get the mode of a given key.
      *
-     * @param  mixed  $key
+     * @param  string|array|null  $key
      * @return array|null
      */
     public function mode($key = null)
     {
-        $count = $this->count();
-
-        if ($count == 0) {
+        if ($this->count() === 0) {
             return;
         }
 
@@ -238,6 +236,19 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
     public function collapse()
     {
         return new static(Arr::collapse($this->items));
+    }
+
+    /**
+     * Alias for the "contains" method.
+     *
+     * @param  mixed  $key
+     * @param  mixed  $operator
+     * @param  mixed  $value
+     * @return bool
+     */
+    public function some($key, $operator = null, $value = null)
+    {
+        return $this->contains($key, $operator, $value);
     }
 
     /**
@@ -504,6 +515,30 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
     }
 
     /**
+     * Apply the callback if the collection is empty.
+     *
+     * @param  callable  $callback
+     * @param  callable  $default
+     * @return static|mixed
+     */
+    public function whenEmpty(callable $callback, callable $default = null)
+    {
+        return $this->when($this->isEmpty(), $callback, $default);
+    }
+
+    /**
+     * Apply the callback if the collection is not empty.
+     *
+     * @param  callable  $callback
+     * @param  callable  $default
+     * @return static|mixed
+     */
+    public function whenNotEmpty(callable $callback, callable $default = null)
+    {
+        return $this->when($this->isNotEmpty(), $callback, $default);
+    }
+
+    /**
      * Apply the callback if the value is falsy.
      *
      * @param  bool  $value
@@ -514,6 +549,30 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
     public function unless($value, callable $callback, callable $default = null)
     {
         return $this->when(! $value, $callback, $default);
+    }
+
+    /**
+     * Apply the callback unless the collection is empty.
+     *
+     * @param  callable  $callback
+     * @param  callable  $default
+     * @return static|mixed
+     */
+    public function unlessEmpty(callable $callback, callable $default = null)
+    {
+        return $this->unless($this->isEmpty(), $callback, $default);
+    }
+
+    /**
+     * Apply the callback unless the collection is not empty.
+     *
+     * @param  callable  $callback
+     * @param  callable  $default
+     * @return static|mixed
+     */
+    public function unlessNotEmpty(callable $callback, callable $default = null)
+    {
+        return $this->unless($this->isNotEmpty(), $callback, $default);
     }
 
     /**
@@ -679,7 +738,7 @@ class Collection implements ArrayAccess, Arrayable, Countable, IteratorAggregate
      * @param  string  $key
      * @param  mixed  $operator
      * @param  mixed  $value
-     * @return static
+     * @return mixed
      */
     public function firstWhere($key, $operator, $value = null)
     {

@@ -14,6 +14,7 @@ use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Contracts\Queue\QueueableEntity;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Contracts\Queue\QueueableCollection;
+use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\ConnectionResolverInterface as Resolver;
 
@@ -393,6 +394,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             $this->getConnectionName()
         );
 
+        $model->setTable($this->getTable());
+
         return $model;
     }
 
@@ -541,7 +544,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected function incrementOrDecrement($column, $amount, $extra, $method)
     {
-        $query = $this->newQuery();
+        $query = $this->newModelQuery();
 
         if (! $this->exists) {
             return $query->{$method}($column, $amount, $extra);
@@ -565,7 +568,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected function incrementOrDecrementAttributeValue($column, $amount, $extra, $method)
     {
-        $this->{$column} = $this->{$column} + ($method == 'increment' ? $amount : $amount * -1);
+        $this->{$column} = $this->{$column} + ($method === 'increment' ? $amount : $amount * -1);
 
         $this->forceFill($extra);
 
@@ -825,7 +828,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * Destroy the models for the given IDs.
      *
-     * @param  array|int  $ids
+     * @param  \Illuminate\Support\Collection|array|int  $ids
      * @return int
      */
     public static function destroy($ids)
@@ -834,6 +837,10 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         // for the operation. The developers can then check this number as a boolean
         // type value or get this total count of records deleted for logging, etc.
         $count = 0;
+
+        if ($ids instanceof BaseCollection) {
+            $ids = $ids->all();
+        }
 
         $ids = is_array($ids) ? $ids : func_get_args();
 
@@ -953,9 +960,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function newQueryWithoutRelationships()
     {
-        return $this->registerGlobalScopes(
-            $this->newEloquentBuilder($this->newBaseQueryBuilder())->setModel($this)
-        );
+        return $this->registerGlobalScopes($this->newModelQuery());
     }
 
     /**
@@ -1144,7 +1149,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * Clone the model into a new, non-existing instance.
      *
      * @param  array|null  $except
-     * @return \Illuminate\Database\Eloquent\Model
+     * @return static
      */
     public function replicate(array $except = null)
     {

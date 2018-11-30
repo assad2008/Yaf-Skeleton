@@ -54,7 +54,7 @@ trait AbstractTrait
     /**
      * Deletes all items in the pool.
      *
-     * @param string The prefix used for all identifiers managed by this pool
+     * @param string $namespace The prefix used for all identifiers managed by this pool
      *
      * @return bool True if the pool was successfully cleared, false otherwise
      */
@@ -106,14 +106,7 @@ trait AbstractTrait
     {
         $this->deferred = array();
         if ($cleared = $this->versioningIsEnabled) {
-            $namespaceVersion = 2;
-            try {
-                foreach ($this->doFetch(array('@'.$this->namespace)) as $v) {
-                    $namespaceVersion = 1 + (int) $v;
-                }
-            } catch (\Exception $e) {
-            }
-            $namespaceVersion .= ':';
+            $namespaceVersion = substr_replace(base64_encode(pack('V', mt_rand())), ':', 5);
             try {
                 $cleared = $this->doSave(array('@'.$this->namespace => $namespaceVersion), 0);
             } catch (\Exception $e) {
@@ -246,6 +239,10 @@ trait AbstractTrait
             try {
                 foreach ($this->doFetch(array('@'.$this->namespace)) as $v) {
                     $this->namespaceVersion = $v;
+                }
+                if ('1:' === $this->namespaceVersion) {
+                    $this->namespaceVersion = substr_replace(base64_encode(pack('V', time())), ':', 5);
+                    $this->doSave(array('@'.$this->namespace => $this->namespaceVersion), 0);
                 }
             } catch (\Exception $e) {
             }

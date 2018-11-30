@@ -64,7 +64,7 @@ class Helpers
 	{
 		$args = func_get_args();
 		return preg_replace_callback('#%#', function () use (&$args, &$count) {
-			return Helpers::escapeHtml($args[++$count]);
+			return self::escapeHtml($args[++$count]);
 		}, $mask);
 	}
 
@@ -176,7 +176,21 @@ class Helpers
 	public static function improveException($e)
 	{
 		$message = $e->getMessage();
-		if (!$e instanceof \Error && !$e instanceof \ErrorException) {
+
+		if ($e instanceof \Nette\MemberAccessException && ($trace = $e->getTrace()) && isset($trace[1]['file'], $trace[1]['line'])) {
+			if (preg_match('# property ([\w\\\\]+)::\$(\w+), did you mean \$(\w+)#', $message, $m)) {
+				$replace = ["->$m[2]", "->$m[3]"];
+			} elseif (preg_match('# method ([\w\\\\]+)::(\w+)\(\), did you mean (\w+)\(#', $message, $m)) {
+				$replace = ["$m[2](", "$m[3]("];
+			} else {
+				return;
+			}
+			$e->tracyAction = [
+				'link' => self::editorUri($trace[1]['file'], $trace[1]['line'], 'fix', $replace[0], $replace[1]),
+				'label' => 'fix it',
+			];
+
+		} elseif (!$e instanceof \Error && !$e instanceof \ErrorException) {
 			// do nothing
 		} elseif (preg_match('#^Call to undefined function (\S+\\\\)?(\w+)\(#', $message, $m)) {
 			$funcs = array_merge(get_defined_functions()['internal'], get_defined_functions()['user']);
@@ -218,6 +232,46 @@ class Helpers
 				'label' => 'fix it',
 			];
 		}
+	}
+
+
+	/** @internal */
+	public static function improveError($message, array $context = [])
+	{
+		if (preg_match('#^Undefined variable: (\w+)#', $message, $m) && $context) {
+			$hint = self::getSuggestion(array_keys($context), $m[1]);
+			return $hint ? "Undefined variable $$m[1], did you mean $$hint?" : $message;
+
+		} elseif (preg_match('#^Undefined property: ([\w\\\\]+)::\$(\w+)#', $message, $m)) {
+			$rc = new \ReflectionClass($m[1]);
+			$items = array_diff($rc->getProperties(\ReflectionProperty::IS_PUBLIC), $rc->getProperties(\ReflectionProperty::IS_STATIC));
+			$hint = self::getSuggestion($items, $m[2]);
+			return $hint ? $message . ", did you mean $$hint?" : $message;
+		}
+		return $message;
+	}
+
+
+	/** @internal */
+	public static function guessClassFile($class)
+	{
+		$segments = explode(DIRECTORY_SEPARATOR, $class);
+		$res = null;
+		$max = 0;
+		foreach (get_declared_classes() as $class) {
+			$parts = explode(DIRECTORY_SEPARATOR, $class);
+			foreach ($parts as $i => $part) {
+				if (!isset($segments[$i]) || $part !== $segments[$i]) {
+					break;
+				}
+			}
+			if ($i > $max && ($file = (new \ReflectionClass($class))->getFileName())) {
+				$max = $i;
+				$res = array_merge(array_slice(explode(DIRECTORY_SEPARATOR, $file), 0, $i - count($parts)), array_slice($segments, $i));
+				$res = implode(DIRECTORY_SEPARATOR, $res) . '.php';
+			}
+		}
+		return $res;
 	}
 
 
