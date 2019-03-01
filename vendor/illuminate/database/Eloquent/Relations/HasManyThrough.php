@@ -209,7 +209,7 @@ class HasManyThrough extends Relation
         // relationship as this will allow us to quickly access all of the related
         // models without having to do nested looping which will be quite slow.
         foreach ($results as $result) {
-            $dictionary[$result->{$this->firstKey}][] = $result;
+            $dictionary[$result->laravel_through_key][] = $result;
         }
 
         return $dictionary;
@@ -343,7 +343,9 @@ class HasManyThrough extends Relation
      */
     public function getResults()
     {
-        return $this->get();
+        return ! is_null($this->farParent->{$this->localKey})
+                ? $this->get()
+                : $this->related->newCollection();
     }
 
     /**
@@ -412,7 +414,7 @@ class HasManyThrough extends Relation
             $columns = [$this->related->getTable().'.*'];
         }
 
-        return array_merge($columns, [$this->getQualifiedFirstKeyName()]);
+        return array_merge($columns, [$this->getQualifiedFirstKeyName().' as laravel_through_key']);
     }
 
     /**
@@ -425,6 +427,24 @@ class HasManyThrough extends Relation
     public function chunk($count, callable $callback)
     {
         return $this->prepareQueryBuilder()->chunk($count, $callback);
+    }
+
+    /**
+     * Chunk the results of a query by comparing numeric IDs.
+     *
+     * @param  int  $count
+     * @param  callable  $callback
+     * @param  string|null  $column
+     * @param  string|null  $alias
+     * @return bool
+     */
+    public function chunkById($count, callable $callback, $column = null, $alias = null)
+    {
+        $column = $column ?? $this->getRelated()->getQualifiedKeyName();
+
+        $alias = $alias ?? $this->getRelated()->getKeyName();
+
+        return $this->prepareQueryBuilder()->chunkById($count, $callback, $column, $alias);
     }
 
     /**

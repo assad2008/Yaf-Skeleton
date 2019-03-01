@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require __DIR__ . '/../src/tracy.php';
 
 use Tracy\Debugger;
@@ -13,7 +15,7 @@ Debugger::enable(Debugger::DETECT, __DIR__ . '/log');
 
 
 if (isset($_SERVER['HTTP_X_REQUESTED_WITH'])) { // AJAX request
-	Debugger::barDump('AJAX request');
+	Debugger::barDump('AJAX request ' . time());
 	if (!empty($_GET['error'])) {
 		this_is_fatal_error();
 	}
@@ -42,6 +44,10 @@ Debugger::barDump('classic request');
 
 <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
 <script>
+
+// default settings:
+// window.TracyAutoRefresh = true;
+// window.TracyMaxAjaxRows = 3;
 
 var jqxhr;
 

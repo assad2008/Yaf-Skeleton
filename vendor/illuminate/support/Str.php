@@ -281,6 +281,22 @@ class Str
     }
 
     /**
+     * Pluralize the last word of an English, studly caps case string.
+     *
+     * @param  string  $value
+     * @param  int     $count
+     * @return string
+     */
+    public static function pluralStudly($value, $count = 2)
+    {
+        $parts = preg_split('/(.)(?=[A-Z])/u', $value, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+        $lastWord = array_pop($parts);
+
+        return implode('', $parts).self::plural($lastWord, $count);
+    }
+
+    /**
      * Generate a more truly "random" alpha-numeric string.
      *
      * @param  int  $length
@@ -428,7 +444,7 @@ class Str
         $title = str_replace('@', $separator.'at'.$separator, $title);
 
         // Remove all characters that are not the separator, letters, numbers, or whitespace.
-        $title = preg_replace('![^'.preg_quote($separator).'\pL\pN\s]+!u', '', mb_strtolower($title));
+        $title = preg_replace('![^'.preg_quote($separator).'\pL\pN\s]+!u', '', static::lower($title));
 
         // Replace all separator characters and whitespace by a single separator
         $title = preg_replace('!['.preg_quote($separator).'\s]+!u', $separator, $title);
