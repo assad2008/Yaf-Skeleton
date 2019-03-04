@@ -211,6 +211,43 @@ function dhtmlspecialchars($string) {
 	return $string;
 }
 
+function fileext($filename) {
+	return addslashes(strtolower(substr(strrchr($filename, '.'), 1, 10)));
+}
+
+function ffile_get_contents($url, $timeout = 3) {
+	$ctx = stream_context_create(
+		[
+			'http' => [
+				'timeout' => $timeout,
+			],
+		]
+	);
+	$r = file_get_contents($url, 0, $ctx);
+	unset($ctx);
+	return $r;
+}
+
+function getRand($proArr) {
+	$result = '';
+	//概率数组的总概率精度
+	$proSum = array_sum($proArr);
+
+	//概率数组循环
+	foreach ($proArr as $key => $proCur) {
+		$randNum = mt_rand(1, $proSum);
+		if ($randNum <= $proCur) {
+			$result = $key;
+			break;
+		} else {
+			$proSum -= $proCur;
+		}
+	}
+	unset($proArr);
+
+	return $result;
+}
+
 function gen_random_string($length = 32) {
 	if (file_exists('/dev/urandom')) {
 		$randomData = file_get_contents('/dev/urandom', false, null, 0, 100) . uniqid(mt_rand(), true);
@@ -243,6 +280,29 @@ function get_remote_file_size($url) //远程获取文件长度 By YEE
 function microtime_float() {
 	list($usec, $sec) = explode(" ", microtime());
 	return $sec . substr($usec, 2);
+}
+
+function multi_array_sort($multi_array, $sort_key, $sort = SORT_DESC, $sort_key1 = '', $sort1 = SORT_DESC) {
+	if (is_array($multi_array)) {
+		foreach ($multi_array as $row_array) {
+			if (is_array($row_array)) {
+				$key_array[] = $row_array[$sort_key];
+				if ($sort_key1) {
+					$key_array1[] = $row_array[$sort_key1];
+				}
+			} else {
+				return FALSE;
+			}
+		}
+	} else {
+		return FALSE;
+	}
+	if ($key_array1) {
+		array_multisort($key_array, $sort, SORT_NUMERIC, $key_array1, $sort1, SORT_NUMERIC, $multi_array);
+	} else {
+		array_multisort($key_array, $sort, SORT_NUMERIC, $multi_array);
+	}
+	return $multi_array;
 }
 
 function is_utf8($string) //检测是否为UTF-8字符串 来自：PHPCMS
@@ -332,23 +392,6 @@ function rc4($string, $operation = 'DECODE', $key = '', $expiry = 0) {
 	} else {
 		return $keyc . str_replace('=', '', base64_encode($result));
 	}
-}
-
-function fileext($filename) {
-	return addslashes(strtolower(substr(strrchr($filename, '.'), 1, 10)));
-}
-
-function ffile_get_contents($url, $timeout = 3) {
-	$ctx = stream_context_create(
-		[
-			'http' => [
-				'timeout' => $timeout,
-			],
-		]
-	);
-	$r = file_get_contents($url, 0, $ctx);
-	unset($ctx);
-	return $r;
 }
 
 function isemail($email) {

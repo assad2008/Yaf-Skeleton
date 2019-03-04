@@ -3,10 +3,9 @@
 final class IndexAction extends ActionBase {
 
 	public function _exe() {
-		$posts = Posts::find(2)->toArray();
-		echo '<pre>';
-		print_r($posts);
-
+		$posts = Posts::find(11)->toArray();
+		print_r($posts['post_title']);
+		echo '<br>';
 		$starttime = Yaf_Registry::get("starttime");
 		echo $starttime;
 		echo '<br>';
