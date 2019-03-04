@@ -3,14 +3,6 @@
 final class IndexAction extends ActionBase {
 
 	public function _exe() {
-		Posts::find(2);
-		Posts::find(3);
-		Posts::find(4);
-		Posts::find(6);
-		Posts::find(7);
-		Posts::find(10);
-		Posts::find(11);
-		Posts::find(12);
 		$posts = Posts::find(2)->toArray();
 		echo '<pre>';
 		print_r($posts);
