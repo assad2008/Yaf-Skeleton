@@ -12,7 +12,6 @@
 namespace Symfony\Component\Cache\Traits;
 
 use Predis\Connection\Aggregate\ClusterInterface;
-use Predis\Connection\Aggregate\PredisCluster;
 use Predis\Connection\Aggregate\RedisCluster;
 use Predis\Connection\Factory;
 use Predis\Response\Status;
@@ -48,9 +47,7 @@ trait RedisTrait
         if (preg_match('#[^-+_.A-Za-z0-9]#', $namespace, $match)) {
             throw new InvalidArgumentException(sprintf('RedisAdapter namespace contains "%s" but only characters in [-+_.A-Za-z0-9] are allowed.', $match[0]));
         }
-        if ($redisClient instanceof \RedisCluster) {
-            $this->enableVersioning();
-        } elseif (!$redisClient instanceof \Redis && !$redisClient instanceof \RedisArray && !$redisClient instanceof \Predis\Client && !$redisClient instanceof RedisProxy) {
+        if (!$redisClient instanceof \Redis && !$redisClient instanceof \RedisArray && !$redisClient instanceof \RedisCluster && !$redisClient instanceof \Predis\Client && !$redisClient instanceof RedisProxy) {
             throw new InvalidArgumentException(sprintf('%s() expects parameter 1 to be Redis, RedisArray, RedisCluster or Predis\Client, %s given', __METHOD__, \is_object($redisClient) ? \get_class($redisClient) : \gettype($redisClient)));
         }
         $this->redis = $redisClient;
@@ -169,18 +166,29 @@ trait RedisTrait
      */
     protected function doFetch(array $ids)
     {
-        if ($ids) {
+        if (!$ids) {
+            return [];
+        }
+
+        $result = [];
+
+        if ($this->redis instanceof \Predis\Client && $this->redis->getConnection() instanceof ClusterInterface) {
             $values = $this->pipeline(function () use ($ids) {
                 foreach ($ids as $id) {
                     yield 'get' => [$id];
                 }
             });
-            foreach ($values as $id => $v) {
-                if ($v) {
-                    yield $id => parent::unserialize($v);
-                }
+        } else {
+            $values = array_combine($ids, $this->redis->mget($ids));
+        }
+
+        foreach ($values as $id => $v) {
+            if ($v) {
+                $result[$id] = parent::unserialize($v);
             }
         }
+
+        return $result;
     }
 
     /**
@@ -196,9 +204,6 @@ trait RedisTrait
      */
     protected function doClear($namespace)
     {
-        // When using a native Redis cluster, clearing the cache is done by versioning in AbstractTrait::clear().
-        // This means old keys are not really removed until they expire and may need garbage collection.
-
         $cleared = true;
         $hosts = [$this->redis];
         $evalArgs = [[$namespace], 0];
@@ -207,13 +212,11 @@ trait RedisTrait
             $evalArgs = [0, $namespace];
 
             $connection = $this->redis->getConnection();
-            if ($connection instanceof PredisCluster) {
+            if ($connection instanceof ClusterInterface && $connection instanceof \Traversable) {
                 $hosts = [];
                 foreach ($connection as $c) {
                     $hosts[] = new \Predis\Client($c);
                 }
-            } elseif ($connection instanceof RedisCluster) {
-                return false;
             }
         } elseif ($this->redis instanceof \RedisArray) {
             $hosts = [];
@@ -221,7 +224,11 @@ trait RedisTrait
                 $hosts[] = $this->redis->_instance($host);
             }
         } elseif ($this->redis instanceof \RedisCluster) {
-            return false;
+            $hosts = [];
+            foreach ($this->redis->_masters() as $host) {
+                $hosts[] = $h = new \Redis();
+                $h->connect($host[0], $host[1]);
+            }
         }
         foreach ($hosts as $host) {
             if (!isset($namespace[0])) {
@@ -248,7 +255,7 @@ trait RedisTrait
                     $keys = $keys[1];
                 }
                 if ($keys) {
-                    $host->del($keys);
+                    $this->doDelete($keys);
                 }
             } while ($cursor = (int) $cursor);
         }
@@ -261,7 +268,17 @@ trait RedisTrait
      */
     protected function doDelete(array $ids)
     {
-        if ($ids) {
+        if (!$ids) {
+            return true;
+        }
+
+        if ($this->redis instanceof \Predis\Client && $this->redis->getConnection() instanceof ClusterInterface) {
+            $this->pipeline(function () use ($ids) {
+                foreach ($ids as $id) {
+                    yield 'del' => [$id];
+                }
+            })->rewind();
+        } else {
             $this->redis->del($ids);
         }
 
@@ -310,7 +327,16 @@ trait RedisTrait
     {
         $ids = [];
 
-        if ($this->redis instanceof \Predis\Client && !$this->redis->getConnection() instanceof ClusterInterface) {
+        if ($this->redis instanceof \RedisCluster || ($this->redis instanceof \Predis\Client && $this->redis->getConnection() instanceof RedisCluster)) {
+            // phpredis & predis don't support pipelining with RedisCluster
+            // see https://github.com/phpredis/phpredis/blob/develop/cluster.markdown#pipelining
+            // see https://github.com/nrk/predis/issues/267#issuecomment-123781423
+            $results = [];
+            foreach ($generator() as $command => $args) {
+                $results[] = \call_user_func_array([$this->redis, $command], $args);
+                $ids[] = $args[0];
+            }
+        } elseif ($this->redis instanceof \Predis\Client) {
             $results = $this->redis->pipeline(function ($redis) use ($generator, &$ids) {
                 foreach ($generator() as $command => $args) {
                     \call_user_func_array([$redis, $command], $args);
@@ -333,15 +359,6 @@ trait RedisTrait
             }
             foreach ($results as $k => list($h, $c)) {
                 $results[$k] = $connections[$h][$c];
-            }
-        } elseif ($this->redis instanceof \RedisCluster || ($this->redis instanceof \Predis\Client && $this->redis->getConnection() instanceof ClusterInterface)) {
-            // phpredis & predis don't support pipelining with RedisCluster
-            // see https://github.com/phpredis/phpredis/blob/develop/cluster.markdown#pipelining
-            // see https://github.com/nrk/predis/issues/267#issuecomment-123781423
-            $results = [];
-            foreach ($generator() as $command => $args) {
-                $results[] = \call_user_func_array([$this->redis, $command], $args);
-                $ids[] = $args[0];
             }
         } else {
             $this->redis->multi(\Redis::PIPELINE);

@@ -11,7 +11,7 @@
 
 /*
  * Authors:
- * - Atef Ben Ali
+ * - Atef Ben Ali (atefBB)
  * - Ibrahim AshShohail
  * - MLTDev
  */
@@ -59,12 +59,13 @@ return [
         'sameElse' => 'L',
     ],
     'meridiem' => ['ص', 'م'],
-    'weekdays' => ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
-    'weekdays_short' => ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'],
+    'weekdays' => ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
+    'weekdays_short' => ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'],
     'weekdays_min' => ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'],
     'months' => $months,
     'months_short' => $months,
     'first_day_of_week' => 6,
     'day_of_first_week_of_year' => 1,
     'list' => ['، ', ' و '],
+    'weekend' => [5, 6],
 ];

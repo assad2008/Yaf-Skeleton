@@ -82,30 +82,27 @@ class Bar
 			});
 		}
 
-		$rows = [];
-
 		if (Helpers::isAjax()) {
 			if ($useSession) {
 				$contentId = $_SERVER['HTTP_X_TRACY_AJAX'];
-				$row = (object) ['type' => 'ajax', 'panels' => $this->renderPanels('-ajax:' . $contentId)];
-				$_SESSION['_tracy']['bar'][$contentId] = ['content' => self::renderHtmlRows([$row]), 'time' => time()];
+				$_SESSION['_tracy']['bar'][$contentId] = ['content' => $this->renderHtml('ajax', '-ajax:' . $contentId), 'time' => time()];
 			}
 
 		} elseif (preg_match('#^Location:#im', implode("\n", headers_list()))) { // redirect
 			if ($useSession) {
-				$redirectQueue[] = [
-					'panels' => $this->renderPanels('-r' . count($redirectQueue)),
-					'time' => time(),
-				];
+				$redirectQueue[] = ['content' => $this->renderHtml('redirect', '-r' . count($redirectQueue)), 'time' => time()];
 			}
 
 		} elseif (Helpers::isHtmlMode()) {
-			$rows[] = (object) ['type' => 'main', 'panels' => $this->renderPanels()];
-			foreach (array_reverse((array) $redirectQueue) as $info) {
-				$rows[] = (object) ['type' => 'redirect', 'panels' => $info['panels']];
+			$content = $this->renderHtml('main');
+
+			foreach (array_reverse((array) $redirectQueue) as $item) {
+				$content['bar'] .= $item['content']['bar'];
+				$content['panels'] .= $item['content']['panels'];
 			}
 			$redirectQueue = null;
-			$content = self::renderHtmlRows($rows);
+
+			$content = '<div id=tracy-debug-bar>' . $content['bar'] . '</div>' . $content['panels'];
 
 			if ($this->contentId) {
 				$_SESSION['_tracy']['bar'][$this->contentId] = ['content' => $content, 'time' => time()];
@@ -119,12 +116,17 @@ class Bar
 	}
 
 
-	private static function renderHtmlRows(array $rows): string
+	private function renderHtml(string $type, string $suffix = ''): array
 	{
+		$panels = $this->renderPanels($suffix);
+
+		ob_start(function () {});
+		require __DIR__ . '/assets/bar.phtml';
+		$bar = Helpers::fixEncoding(ob_get_clean());
+
 		ob_start(function () {});
 		require __DIR__ . '/assets/panels.phtml';
-		require __DIR__ . '/assets/bar.phtml';
-		return Helpers::fixEncoding(ob_get_clean());
+		return ['bar' => $bar, 'panels' => Helpers::fixEncoding(ob_get_clean())];
 	}
 
 
@@ -142,7 +144,7 @@ class Bar
 		foreach ($this->panels as $id => $panel) {
 			$idHtml = preg_replace('#[^a-z0-9]+#i', '-', $id) . $suffix;
 			try {
-				$tab = $panel->getTab();
+				$tab = (string) $panel->getTab();
 				$panelHtml = $tab ? $panel->getPanel() : null;
 
 			} catch (\Throwable $e) {
@@ -193,12 +195,12 @@ class Bar
 			}
 			if ($session) {
 				$method = $m[1] ? 'loadAjax' : 'init';
-				echo "Tracy.Debug.$method(", json_encode($session['content']), ');';
+				echo "Tracy.Debug.$method(", json_encode($session['content'], JSON_UNESCAPED_SLASHES), ');';
 				$session = null;
 			}
 			$session = &$_SESSION['_tracy']['bluescreen'][$m[2]];
 			if ($session) {
-				echo 'Tracy.BlueScreen.loadAjax(', json_encode($session['content']), ');';
+				echo 'Tracy.BlueScreen.loadAjax(', json_encode($session['content'], JSON_UNESCAPED_SLASHES), ');';
 				$session = null;
 			}
 			return true;
@@ -213,12 +215,14 @@ class Bar
 		$css = array_map('file_get_contents', array_merge([
 			__DIR__ . '/assets/bar.css',
 			__DIR__ . '/../Toggle/toggle.css',
+			__DIR__ . '/../TableSort/table-sort.css',
 			__DIR__ . '/../Dumper/assets/dumper.css',
 			__DIR__ . '/../BlueScreen/assets/bluescreen.css',
 		], Debugger::$customCssFiles));
 
 		echo
-"(function(){
+"'use strict';
+(function(){
 	var el = document.createElement('style');
 	el.setAttribute('nonce', document.currentScript.getAttribute('nonce') || document.currentScript.nonce);
 	el.className='tracy-debug';

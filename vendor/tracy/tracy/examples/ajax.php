@@ -15,7 +15,7 @@ Debugger::enable(Debugger::DETECT, __DIR__ . '/log');
 
 
 if (isset($_SERVER['HTTP_X_REQUESTED_WITH'])) { // AJAX request
-	Debugger::barDump('AJAX request ' . time());
+	Debugger::barDump('AJAX request ' . date('H:i:s'));
 	if (!empty($_GET['error'])) {
 		this_is_fatal_error();
 	}
@@ -26,7 +26,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH'])) { // AJAX request
 	exit;
 }
 
-Debugger::barDump('classic request');
+Debugger::barDump('classic request ' . date('H:i:s'));
 
 ?>
 <!DOCTYPE html><html class=arrow><link rel="stylesheet" href="assets/style.css">
@@ -42,7 +42,7 @@ Debugger::barDump('classic request');
 </p>
 
 
-<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 <script>
 
 // default settings:
@@ -61,6 +61,7 @@ $('button').click(function() {
 	jqxhr = $.ajax({
 		data: {error: $(this).hasClass('error') * 1},
 		dataType: 'json',
+		jsonp: false,
 		// headers: {'X-Tracy-Ajax': Tracy.getAjaxHeader()}, // use when auto-refresh is disabled via window.TracyAutoRefresh = false;
 	}).done(function(data) {
 		$('#result').text('loaded: ' + data);

@@ -18,23 +18,25 @@
  * - JD Isaacks
  * - Andrea Martini
  * - Francesco Marasco
+ * - Tizianoz93
+ * - Davide Casiraghi (davide-casiraghi)
  */
 return [
     'year' => ':count anno|:count anni',
     'a_year' => 'un anno|:count anni',
-    'y' => ':count a.',
+    'y' => ':count anno|:count anni',
     'month' => ':count mese|:count mesi',
     'a_month' => 'un mese|:count mesi',
-    'm' => ':count mes.',
+    'm' => ':count mese|:count mesi',
     'week' => ':count settimana|:count settimane',
     'a_week' => 'una settimana|:count settimane',
     'w' => ':count set.',
     'day' => ':count giorno|:count giorni',
     'a_day' => 'un giorno|:count giorni',
-    'd' => ':count g.',
+    'd' => ':count g|:count gg',
     'hour' => ':count ora|:count ore',
     'a_hour' => 'un\'ora|:count ore',
-    'h' => ':count o.',
+    'h' => ':count h',
     'minute' => ':count minuto|:count minuti',
     'a_minute' => 'un minuto|:count minuti',
     'min' => ':count min.',
@@ -52,6 +54,9 @@ return [
     'diff_tomorrow' => 'domani',
     'diff_before_yesterday' => 'l\'altro ieri',
     'diff_after_tomorrow' => 'dopodomani',
+    'period_interval' => 'ogni :interval',
+    'period_start_date' => 'dal :date',
+    'period_end_date' => 'al :date',
     'formats' => [
         'LT' => 'HH:mm',
         'LTS' => 'HH:mm:ss',

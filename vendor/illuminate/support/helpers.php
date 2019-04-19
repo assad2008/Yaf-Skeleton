@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use Dotenv\Environment\DotenvFactory;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\HigherOrderTapProxy;
+use Dotenv\Environment\Adapter\PutenvAdapter;
 use Dotenv\Environment\Adapter\EnvConstAdapter;
 use Dotenv\Environment\Adapter\ServerConstAdapter;
 
@@ -597,7 +598,7 @@ if (! function_exists('data_set')) {
 
 if (! function_exists('e')) {
     /**
-     * Escape HTML special characters in a string.
+     * Encode HTML special characters in a string.
      *
      * @param  \Illuminate\Contracts\Support\Htmlable|string  $value
      * @param  bool  $doubleEncode
@@ -642,7 +643,7 @@ if (! function_exists('env')) {
         static $variables;
 
         if ($variables === null) {
-            $variables = (new DotenvFactory([new EnvConstAdapter, new ServerConstAdapter]))->createImmutable();
+            $variables = (new DotenvFactory([new EnvConstAdapter, new PutenvAdapter, new ServerConstAdapter]))->createImmutable();
         }
 
         return Option::fromValue($variables->get($key))
@@ -662,7 +663,7 @@ if (! function_exists('env')) {
                         return;
                 }
 
-                if (preg_match('/([\'"])(.*)\1/', $value, $matches)) {
+                if (preg_match('/\A([\'"])(.*)\1\z/', $value, $matches)) {
                     return $matches[2];
                 }
 

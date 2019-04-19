@@ -24,13 +24,13 @@ class Helpers
 		$file = strtr($origFile = $file, Debugger::$editorMapping);
 		if ($editor = self::editorUri($origFile, $line)) {
 			$file = strtr($file, '\\', '/');
-			if (preg_match('#(^[a-z]:)?/.{1,50}$#i', $file, $m) && strlen($file) > strlen($m[0])) {
+			if (preg_match('#(^[a-z]:)?/.{1,40}$#i', $file, $m) && strlen($file) > strlen($m[0])) {
 				$file = '...' . $m[0];
 			}
 			$file = strtr($file, '/', DIRECTORY_SEPARATOR);
 			return self::formatHtml('<a href="%" title="%">%<b>%</b>%</a>',
 				$editor,
-				$file . ($line ? ":$line" : ''),
+				$origFile . ($line ? ":$line" : ''),
 				rtrim(dirname($file), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR,
 				basename($file),
 				$line ? ":$line" : ''
@@ -76,9 +76,9 @@ class Helpers
 	}
 
 
-	public static function findTrace(array $trace, string $method, int &$index = null): ?array
+	public static function findTrace(array $trace, $method, int &$index = null): ?array
 	{
-		$m = explode('::', $method);
+		$m = is_array($method) ? $method : explode('::', $method);
 		foreach ($trace as $i => $item) {
 			if (
 				isset($item['function'])
@@ -166,7 +166,7 @@ class Helpers
 				. $_SERVER['REQUEST_URI'];
 		} else {
 			return 'CLI (PID: ' . getmypid() . ')'
-				. (empty($_SERVER['argv']) ? '' : ': ' . implode(' ', $_SERVER['argv']));
+				. ': ' . implode(' ', array_map([self::class, 'escapeArg'], $_SERVER['argv']));
 		}
 	}
 
@@ -175,21 +175,7 @@ class Helpers
 	public static function improveException(\Throwable $e): void
 	{
 		$message = $e->getMessage();
-
-		if ($e instanceof \Nette\MemberAccessException && ($trace = $e->getTrace()) && isset($trace[1]['file'], $trace[1]['line'])) {
-			if (preg_match('# property ([\w\\\\]+)::\$(\w+), did you mean \$(\w+)#', $message, $m)) {
-				$replace = ["->$m[2]", "->$m[3]"];
-			} elseif (preg_match('# method ([\w\\\\]+)::(\w+)\(\), did you mean (\w+)\(#', $message, $m)) {
-				$replace = ["$m[2](", "$m[3]("];
-			} else {
-				return;
-			}
-			$e->tracyAction = [
-				'link' => self::editorUri($trace[1]['file'], $trace[1]['line'], 'fix', $replace[0], $replace[1]),
-				'label' => 'fix it',
-			];
-
-		} elseif (!$e instanceof \Error && !$e instanceof \ErrorException) {
+		if (!$e instanceof \Error && !$e instanceof \ErrorException) {
 			// do nothing
 		} elseif (preg_match('#^Call to undefined function (\S+\\\\)?(\w+)\(#', $message, $m)) {
 			$funcs = array_merge(get_defined_functions()['internal'], get_defined_functions()['user']);
@@ -198,7 +184,7 @@ class Helpers
 			$replace = ["$m[2](", "$hint("];
 
 		} elseif (preg_match('#^Call to undefined method ([\w\\\\]+)::(\w+)#', $message, $m)) {
-			$hint = self::getSuggestion(get_class_methods($m[1]), $m[2]);
+			$hint = self::getSuggestion(get_class_methods($m[1]) ?: [], $m[2]);
 			$message .= ", did you mean $hint()?";
 			$replace = ["$m[2](", "$hint("];
 
@@ -315,5 +301,20 @@ class Helpers
 		return preg_match('#^Content-Security-Policy(?:-Report-Only)?:.*\sscript-src\s+(?:[^;]+\s)?\'nonce-([\w+/]+=*)\'#mi', implode("\n", headers_list()), $m)
 			? $m[1]
 			: null;
+	}
+
+
+	/**
+	 * Escape a string to be used as a shell argument.
+	 */
+	private static function escapeArg(string $s): string
+	{
+		if (preg_match('#^[a-z0-9._=/:-]+\z#i', $s)) {
+			return $s;
+		}
+
+		return defined('PHP_WINDOWS_VERSION_BUILD')
+			? '"' . str_replace('"', '""', $s) . '"'
+			: escapeshellarg($s);
 	}
 }

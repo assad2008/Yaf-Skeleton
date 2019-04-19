@@ -6,6 +6,8 @@
 
 (function(){
 	let nonce, contentId, ajaxCounter = 1;
+	let baseUrl = location.href.split('#')[0];
+	baseUrl += (baseUrl.indexOf('?') < 0 ? '?' : '&');
 
 	class Panel
 	{
@@ -21,7 +23,7 @@
 
 			this.init = function() {};
 			elem.innerHTML = addNonces(elem.dataset.tracyContent);
-			Tracy.Dumper.init(elem);
+			Tracy.Dumper.init(Debug.layer);
 			delete elem.dataset.tracyContent;
 			evalScripts(elem);
 
@@ -69,7 +71,7 @@
 				});
 			});
 
-			if (!this.is('tracy-ajax')) {
+			if (this.is('tracy-panel-persist')) {
 				Tracy.Toggle.persist(elem);
 			}
 		}
@@ -139,7 +141,7 @@
 
 			let doc = win.document;
 			doc.write('<!DOCTYPE html><meta charset="utf-8">'
-			+ '<script src="?_tracy_bar=js&amp;XDEBUG_SESSION_STOP=1" onload="Tracy.Dumper.init()" async></script>'
+			+ '<script src="' + (baseUrl.replace('&', '&amp;').replace('"', '&quot;')) + '_tracy_bar=js&amp;XDEBUG_SESSION_STOP=1" onload="Tracy.Dumper.init()" async></script>'
 			+ '<body id="tracy-debug">'
 			);
 			doc.body.innerHTML = '<div class="tracy-panel tracy-mode-window" id="' + this.elem.id + '">' + this.elem.innerHTML + '</div>';
@@ -371,16 +373,12 @@
 	class Debug
 	{
 		static init(content) {
-			if (!document.documentElement.dataset) {
-				throw new Error('Tracy requires IE 11+');
-			}
-
 			Debug.layer = document.createElement('div');
 			Debug.layer.setAttribute('id', 'tracy-debug');
 			Debug.layer.innerHTML = addNonces(content);
 			(document.body || document.documentElement).appendChild(Debug.layer);
 			evalScripts(Debug.layer);
-			Tracy.Dumper.init();
+			Tracy.Dumper.init(); // for common dump()
 			Debug.layer.style.display = 'block';
 			Debug.bar.init();
 
@@ -392,12 +390,13 @@
 			Debug.captureWindow();
 			Debug.captureAjax();
 
-			Tracy.TableSort.init(Debug.layer);
+			Tracy.TableSort.init();
 		}
 
 
 		static loadAjax(content) {
 			let rows = Debug.bar.elem.querySelectorAll('.tracy-row[data-tracy-group=ajax]');
+			rows = Array.from(rows).reverse();
 			let max = window.TracyMaxAjaxRows || 3;
 			rows.forEach((row) => {
 				if (--max > 0) {
@@ -420,12 +419,10 @@
 				});
 			}
 
-			Debug.layer.insertAdjacentHTML('beforeend', content);
+			Debug.layer.insertAdjacentHTML('beforeend', content.panels);
 			evalScripts(Debug.layer);
-			let container = document.getElementById('tracy-container');
-			let ajaxBar = container.querySelector('.tracy-row[data-tracy-group=ajax]');
-			Debug.bar.elem.insertBefore(ajaxBar, rows[0]);
-			container.parentNode.removeChild(container);
+			Debug.bar.elem.insertAdjacentHTML('beforeend', content.bar);
+			let ajaxBar = Debug.bar.elem.querySelector('.tracy-row:last-child');
 
 			Debug.layer.querySelectorAll('.tracy-panel').forEach((panel) => {
 				if (!Debug.panels[panel.id]) {
@@ -476,7 +473,7 @@
 					this.setRequestHeader('X-Tracy-Ajax', reqId);
 					this.addEventListener('load', function() {
 						if (this.getAllResponseHeaders().match(/^X-Tracy-Ajax: 1/mi)) {
-							Debug.loadScript('?_tracy_bar=content-ajax.' + reqId + '&XDEBUG_SESSION_STOP=1&v=' + Math.random());
+							Debug.loadScript(baseUrl + '_tracy_bar=content-ajax.' + reqId + '&XDEBUG_SESSION_STOP=1&v=' + Math.random());
 						}
 					});
 				}
@@ -491,7 +488,7 @@
 					request.headers.set('X-Tracy-Ajax', reqId);
 					return oldFetch(request).then((response) => {
 						if (response.headers.has('X-Tracy-Ajax') && response.headers.get('X-Tracy-Ajax')[0] === '1') {
-							Debug.loadScript('?_tracy_bar=content-ajax.' + reqId + '&XDEBUG_SESSION_STOP=1&v=' + Math.random());
+							Debug.loadScript(baseUrl + '_tracy_bar=content-ajax.' + reqId + '&XDEBUG_SESSION_STOP=1&v=' + Math.random());
 						}
 
 						return response;
@@ -677,7 +674,7 @@
 		contentId = document.currentScript.dataset.id;
 	}
 
-	Tracy = window.Tracy || {};
+	let Tracy = window.Tracy = window.Tracy || {};
 	Tracy.panelZIndex = Tracy.panelZIndex || 20000;
 	Tracy.DebugPanel = Panel;
 	Tracy.DebugBar = Bar;

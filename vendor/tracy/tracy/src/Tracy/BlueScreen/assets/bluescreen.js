@@ -46,7 +46,7 @@
 				}
 			});
 
-			Tracy.TableSort.init(blueScreen);
+			Tracy.TableSort.init();
 		}
 
 
@@ -66,6 +66,6 @@
 	let inited;
 
 
-	Tracy = window.Tracy || {};
+	let Tracy = window.Tracy = window.Tracy || {};
 	Tracy.BlueScreen = BlueScreen;
 })();

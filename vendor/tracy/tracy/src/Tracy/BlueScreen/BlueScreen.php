@@ -42,7 +42,7 @@ class BlueScreen
 
 	public function __construct()
 	{
-		$this->collapsePaths[] = preg_match('#(.+/vendor)/tracy/tracy/src/Tracy$#', strtr(__DIR__, '\\', '/'), $m)
+		$this->collapsePaths[] = preg_match('#(.+/vendor)/tracy/tracy/src/Tracy/BlueScreen$#', strtr(__DIR__, '\\', '/'), $m)
 			? $m[1]
 			: __DIR__;
 	}
@@ -122,12 +122,22 @@ class BlueScreen
 			: Helpers::getClass($exception);
 		$lastError = $exception instanceof \ErrorException || $exception instanceof \Error ? null : error_get_last();
 
+		if (function_exists('apache_request_headers')) {
+			$httpHeaders = apache_request_headers();
+		} else {
+			$httpHeaders = array_filter($_SERVER, function ($k) { return strncmp($k, 'HTTP_', 5) === 0; }, ARRAY_FILTER_USE_KEY);
+			$httpHeaders = array_combine(array_map(function ($k) { return strtolower(strtr(substr($k, 5), '_', '-')); }, array_keys($httpHeaders)), $httpHeaders);
+		}
+
 		$snapshot = &$this->snapshot;
 		$snapshot = [];
 		$dump = $this->getDumper();
 
 		$css = array_map('file_get_contents', array_merge([
 			__DIR__ . '/assets/bluescreen.css',
+			__DIR__ . '/../Toggle/toggle.css',
+			__DIR__ . '/../TableSort/table-sort.css',
+			__DIR__ . '/../Dumper/assets/dumper.css',
 		], Debugger::$customCssFiles));
 		$css = preg_replace('#\s+#u', ' ', implode($css));
 
@@ -175,7 +185,7 @@ class BlueScreen
 	{
 		$actions = [];
 		foreach ($this->actions as $callback) {
-			$action = call_user_func($callback, $ex);
+			$action = $callback($ex);
 			if (!empty($action['link']) && !empty($action['label'])) {
 				$actions[] = $action;
 			}

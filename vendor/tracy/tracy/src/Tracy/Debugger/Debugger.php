@@ -17,7 +17,7 @@ use ErrorException;
  */
 class Debugger
 {
-	public const VERSION = '2.6.0';
+	public const VERSION = '2.6.2';
 
 	/** server modes for Debugger::enable() */
 	public const
@@ -66,6 +66,9 @@ class Debugger
 
 	/** @var bool display location by dump()? */
 	public static $showLocation = false;
+
+	/** @deprecated */
+	public static $maxLen;
 
 	/********************* logging ****************d*g**/
 
@@ -141,9 +144,9 @@ class Debugger
 	 * Enables displaying or logging errors and exceptions.
 	 * @param  mixed   $mode  production, development mode, autodetection or IP address(es) whitelist.
 	 * @param  string  $logDirectory  error log directory
-	 * @param  string  $email  administrator email; enables email sending in production mode
+	 * @param  string|array  $email  administrator email; enables email sending in production mode
 	 */
-	public static function enable($mode = null, string $logDirectory = null, string $email = null): void
+	public static function enable($mode = null, string $logDirectory = null, $email = null): void
 	{
 		if ($mode !== null || self::$productionMode === null) {
 			self::$productionMode = is_bool($mode) ? $mode : !self::detectDebugMode($mode);
@@ -193,8 +196,8 @@ class Debugger
 		set_exception_handler([__CLASS__, 'exceptionHandler']);
 		set_error_handler([__CLASS__, 'errorHandler']);
 
-		array_map('class_exists', ['Tracy\Bar', 'Tracy\BlueScreen', 'Tracy\DefaultBarPanel', 'Tracy\Dumper',
-			'Tracy\FireLogger', 'Tracy\Helpers', 'Tracy\Logger', ]);
+		array_map('class_exists', [Bar::class, BlueScreen::class, DefaultBarPanel::class, Dumper::class,
+			FireLogger::class, Helpers::class, Logger::class, ]);
 
 		self::dispatch();
 		self::$enabled = true;
@@ -264,7 +267,12 @@ class Debugger
 
 		} elseif (self::$showBar && !self::$productionMode) {
 			self::removeOutputBuffers(false);
-			self::getBar()->render();
+			try {
+				self::getBar()->render();
+			} catch (\Throwable $e) {
+				self::removeOutputBuffers(true);
+				self::getBlueScreen()->render($e);
+			}
 		}
 	}
 
@@ -545,7 +553,7 @@ class Debugger
 				Dumper::DEPTH => self::$maxDepth,
 				Dumper::TRUNCATE => self::$maxLength,
 				Dumper::LOCATION => self::$showLocation ?: Dumper::LOCATION_CLASS | Dumper::LOCATION_SOURCE,
-				Dumper::LIVE => true,
+				Dumper::LAZY => true,
 			])];
 		}
 		return $var;
