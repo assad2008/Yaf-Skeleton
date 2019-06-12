@@ -63,9 +63,7 @@ class MacroNode extends Node
             ->raw(")\n")
             ->write("{\n")
             ->indent()
-        ;
-
-        $compiler
+            ->write("\$macros = \$this->macros;\n")
             ->write("\$context = \$this->env->mergeGlobals([\n")
             ->indent()
         ;
@@ -90,7 +88,7 @@ class MacroNode extends Node
             ->outdent()
             ->write("]);\n\n")
             ->write("\$blocks = [];\n\n")
-            ->write("ob_start();\n")
+            ->write("ob_start(function () { return ''; });\n")
             ->write("try {\n")
             ->indent()
             ->subcompile($this->getNode('body'))

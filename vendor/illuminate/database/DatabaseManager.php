@@ -6,6 +6,7 @@ use PDO;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Illuminate\Support\ConfigurationUrlParser;
 use Illuminate\Database\Connectors\ConnectionFactory;
 
 /**
@@ -151,7 +152,8 @@ class DatabaseManager implements ConnectionResolverInterface
             throw new InvalidArgumentException("Database [{$name}] not configured.");
         }
 
-        return $config;
+        return (new ConfigurationUrlParser)
+                    ->parseConfiguration($config);
     }
 
     /**
