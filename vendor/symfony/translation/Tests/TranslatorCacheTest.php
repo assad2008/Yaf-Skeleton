@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Translation\Tests;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Resource\SelfCheckingResourceInterface;
 use Symfony\Component\Translation\Loader\ArrayLoader;
@@ -22,13 +23,13 @@ class TranslatorCacheTest extends TestCase
 {
     protected $tmpDir;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->tmpDir = sys_get_temp_dir().'/sf_translation';
         $this->deleteTmpDir();
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         $this->deleteTmpDir();
     }
@@ -99,7 +100,7 @@ class TranslatorCacheTest extends TestCase
         $catalogue = new MessageCatalogue($locale, []);
         $catalogue->addResource(new StaleResource()); // better use a helper class than a mock, because it gets serialized in the cache and re-loaded
 
-        /** @var LoaderInterface|\PHPUnit_Framework_MockObject_MockObject $loader */
+        /** @var LoaderInterface|MockObject $loader */
         $loader = $this->getMockBuilder('Symfony\Component\Translation\Loader\LoaderInterface')->getMock();
         $loader
             ->expects($this->exactly(2))
@@ -266,6 +267,22 @@ class TranslatorCacheTest extends TestCase
         $translator->addLoader('loader', $loader);
         $translator->addResource('loader', 'foo', 'fr');
         $translator->trans('foo');
+    }
+
+    public function testCachedCatalogueIsReDumpedWhenCacheVaryChange()
+    {
+        $translator = new Translator('a', null, $this->tmpDir, false, []);
+        $translator->addLoader('array', new ArrayLoader());
+        $translator->addResource('array', ['foo' => 'bar'], 'a', 'messages');
+
+        // Cached catalogue is dumped
+        $this->assertSame('bar', $translator->trans('foo', [], 'messages', 'a'));
+
+        $translator = new Translator('a', null, $this->tmpDir, false, ['vary']);
+        $translator->addLoader('array', new ArrayLoader());
+        $translator->addResource('array', ['foo' => 'ccc'], 'a', 'messages');
+
+        $this->assertSame('ccc', $translator->trans('foo', [], 'messages', 'a'));
     }
 
     protected function getCatalogue($locale, $messages, $resources = [])

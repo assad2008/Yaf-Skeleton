@@ -20,6 +20,11 @@ use Symfony\Component\Cache\Traits\ProxyTrait;
  */
 class SimpleCacheAdapter extends AbstractAdapter implements PruneableInterface
 {
+    /**
+     * @internal
+     */
+    const NS_SEPARATOR = '_';
+
     use ProxyTrait;
 
     private $miss;
