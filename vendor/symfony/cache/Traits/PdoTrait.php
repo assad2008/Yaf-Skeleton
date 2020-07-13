@@ -11,8 +11,10 @@
 
 namespace Symfony\Component\Cache\Traits;
 
+use Doctrine\DBAL\Abstraction\Result;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Driver\Result as DriverResult;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Schema\Schema;
 use Symfony\Component\Cache\Exception\InvalidArgumentException;
@@ -44,7 +46,7 @@ trait PdoTrait
 
         if ($connOrDsn instanceof \PDO) {
             if (\PDO::ERRMODE_EXCEPTION !== $connOrDsn->getAttribute(\PDO::ATTR_ERRMODE)) {
-                throw new InvalidArgumentException(sprintf('"%s" requires PDO error mode attribute be set to throw Exceptions (i.e. $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION))', __CLASS__));
+                throw new InvalidArgumentException(sprintf('"%s" requires PDO error mode attribute be set to throw Exceptions (i.e. $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION)).', __CLASS__));
             }
 
             $this->conn = $connOrDsn;
@@ -175,9 +177,16 @@ trait PdoTrait
         foreach ($ids as $id) {
             $stmt->bindValue(++$i, $id);
         }
-        $stmt->execute();
+        $result = $stmt->execute();
 
-        while ($row = $stmt->fetch(\PDO::FETCH_NUM)) {
+        if ($result instanceof Result) {
+            $result = $result->iterateNumeric();
+        } else {
+            $stmt->setFetchMode(\PDO::FETCH_NUM);
+            $result = $stmt;
+        }
+
+        foreach ($result as $row) {
             if (null === $row[1]) {
                 $expired[] = $row[0];
             } else {
@@ -207,9 +216,9 @@ trait PdoTrait
 
         $stmt->bindValue(':id', $id);
         $stmt->bindValue(':time', time(), \PDO::PARAM_INT);
-        $stmt->execute();
+        $result = $stmt->execute();
 
-        return (bool) $stmt->fetchColumn();
+        return (bool) ($result instanceof DriverResult ? $result->fetchOne() : $stmt->fetchColumn());
     }
 
     /**
@@ -329,9 +338,9 @@ trait PdoTrait
         }
 
         foreach ($serialized as $id => $data) {
-            $stmt->execute();
+            $result = $stmt->execute();
 
-            if (null === $driver && !$stmt->rowCount()) {
+            if (null === $driver && !($result instanceof DriverResult ? $result->rowCount() : $stmt->rowCount())) {
                 try {
                     $insertStmt->execute();
                 } catch (DBALException $e) {

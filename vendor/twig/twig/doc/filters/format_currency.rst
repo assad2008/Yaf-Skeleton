@@ -60,7 +60,7 @@ By default, the filter uses the current locale. You can pass it explicitly:
         $ composer req twig/intl-extra
 
     Then, use the ``twig/extra-bundle`` on Symfony projects or add the extension
-    explictly on the Twig environment::
+    explicitly on the Twig environment::
 
         use Twig\Extra\Intl\IntlExtension;
 
@@ -70,5 +70,6 @@ By default, the filter uses the current locale. You can pass it explicitly:
 Arguments
 ---------
 
-* ``locale``: The locale
+* ``currency``: The currency
 * ``attrs``: A map of attributes
+* ``locale``: The locale

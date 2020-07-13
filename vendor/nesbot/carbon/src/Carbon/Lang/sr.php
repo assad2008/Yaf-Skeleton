@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-/**
+/*
  * Authors:
  * - Josh Soref
  * - François B
@@ -32,7 +32,7 @@ return [
     'h' => ':count č.',
     'minute' => ':count minut|:count minuta|:count minuta',
     'min' => ':count min.',
-    'second' => ':count sekund|:count sekunde|:count sekunde',
+    'second' => ':count sekundu|:count sekunde|:count sekundi',
     's' => ':count sek.',
     'ago' => 'pre :time',
     'from_now' => 'za :time',
@@ -45,8 +45,12 @@ return [
     'week_ago' => ':count nedelju|:count nedelje|:count nedelja',
 
     'diff_now' => 'upravo sada',
+    'diff_today' => 'danas',
+    'diff_today_regexp' => 'danas(?:\\s+u)?',
     'diff_yesterday' => 'juče',
+    'diff_yesterday_regexp' => 'juče(?:\\s+u)?',
     'diff_tomorrow' => 'sutra',
+    'diff_tomorrow_regexp' => 'sutra(?:\\s+u)?',
     'diff_before_yesterday' => 'prekjuče',
     'diff_after_tomorrow' => 'preksutra',
     'formats' => [
